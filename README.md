@@ -438,12 +438,6 @@ MIT License - see LICENSE file for details
 - **Sentence-Transformers**: Embedding models
 - **FastAPI**: Modern Python web framework
 
-## Contact
-
-For questions or support:
-- Create an issue in the repository
-- Email: support@example.com
-
 ## Resources
 
 - [LangChain Documentation](https://python.langchain.com/)
