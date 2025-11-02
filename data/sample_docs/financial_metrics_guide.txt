@@ -1,0 +1,216 @@
+TechCorp Inc. - Financial Metrics and KPI Guide
+
+Introduction:
+This document provides definitions and context for key financial metrics used in TechCorp's reporting.
+
+Revenue Metrics:
+
+1. Annual Recurring Revenue (ARR)
+   Definition: Annualized value of recurring subscription contracts
+   Calculation: Monthly Recurring Revenue (MRR) × 12
+   Importance: Predictability of future revenue streams
+   TechCorp Target: 20% YoY growth
+
+2. Net Revenue Retention (NRR)
+   Definition: Percentage of recurring revenue retained from existing customers, including expansions
+   Calculation: (Starting ARR + Expansion - Churn) / Starting ARR × 100
+   Best-in-Class: >120%
+   TechCorp Performance: 115-118%
+
+3. Customer Acquisition Cost (CAC)
+   Definition: Total cost to acquire a new customer
+   Calculation: (Sales + Marketing Expenses) / Number of New Customers
+   TechCorp Average: $45,000
+   Industry Benchmark: $35,000-$60,000
+
+4. Customer Lifetime Value (LTV)
+   Definition: Total revenue expected from a customer over their lifetime
+   Calculation: (Average Revenue per Customer × Gross Margin) / Churn Rate
+   TechCorp Average: $250,000
+   Target LTV/CAC Ratio: >3.0x
+
+5. Average Contract Value (ACV)
+   Definition: Average annualized revenue per customer contract
+   Enterprise Segment: $125,000
+   Mid-Market Segment: $45,000
+   SMB Segment: $12,000
+
+Profitability Metrics:
+
+1. Gross Margin
+   Definition: Revenue minus cost of goods sold, expressed as percentage
+   Calculation: (Revenue - COGS) / Revenue × 100
+   TechCorp Target: 68-70%
+   SaaS Industry Average: 70-80%
+
+2. Operating Margin
+   Definition: Operating income as a percentage of revenue
+   Calculation: Operating Income / Revenue × 100
+   TechCorp Target: 17-20%
+   Path to 25% by 2026
+
+3. EBITDA Margin
+   Definition: Earnings before interest, taxes, depreciation, and amortization
+   TechCorp Performance: 27-28%
+   Public SaaS Median: 20-25%
+
+4. Free Cash Flow (FCF)
+   Definition: Cash generated after capital expenditures
+   Calculation: Operating Cash Flow - Capital Expenditures
+   TechCorp FY2023: $280 million
+   FCF Margin: 17%
+
+Efficiency Metrics:
+
+1. Rule of 40
+   Definition: Sum of revenue growth rate and profit margin
+   Calculation: Revenue Growth % + Operating Margin %
+   Benchmark: >40% is excellent
+   TechCorp Score: 35% (15% growth + 20% margin)
+
+2. Magic Number
+   Definition: Sales efficiency metric
+   Calculation: Net New ARR / Prior Quarter Sales & Marketing Spend
+   Interpretation: >0.75 is efficient
+   TechCorp Performance: 0.85
+
+3. Gross Revenue Retention (GRR)
+   Definition: Percentage of revenue retained excluding expansions
+   Calculation: (Starting ARR - Churned ARR) / Starting ARR × 100
+   TechCorp Performance: 95%
+   Best-in-Class: >95%
+
+4. Burn Multiple
+   Definition: How much capital burned to generate $1 of ARR growth
+   Calculation: Net Burn / Net New ARR
+   Good: <1.5x
+   TechCorp: 0.8x (efficient)
+
+Operational Metrics:
+
+1. Monthly Active Users (MAU)
+   Platform Users: 2.5 million
+   Growth Rate: 12% MoM
+   Engagement Rate: 68%
+
+2. Net Promoter Score (NPS)
+   Definition: Customer satisfaction and loyalty metric
+   TechCorp Score: 68
+   Industry Average: 30-40
+   Calculation: % Promoters - % Detractors
+
+3. Customer Health Score
+   Components: Product usage, support tickets, payment history, engagement
+   Green (Healthy): 75% of customers
+   Yellow (At Risk): 20% of customers
+   Red (Churning): 5% of customers
+
+4. Time to Value (TTV)
+   Definition: Time from purchase to realizing value
+   Enterprise: 45 days average
+   Mid-Market: 30 days average
+   SMB: 14 days average
+
+Balance Sheet Metrics:
+
+1. Current Ratio
+   Definition: Current assets divided by current liabilities
+   TechCorp: 2.8
+   Healthy Ratio: >2.0
+
+2. Debt-to-Equity Ratio
+   Definition: Total debt divided by shareholders' equity
+   TechCorp: 0.25
+   Conservative Leverage: <0.5
+
+3. Days Sales Outstanding (DSO)
+   Definition: Average days to collect payment
+   TechCorp: 45 days
+   Industry Standard: 30-60 days
+
+4. Cash Conversion Cycle
+   Definition: Time to convert investments into cash flows
+   Components: DSO + Days Inventory Outstanding - Days Payable Outstanding
+   TechCorp: 35 days
+
+Growth Metrics:
+
+1. Compound Annual Growth Rate (CAGR)
+   Revenue CAGR (2020-2023): 22%
+   Customer CAGR (2020-2023): 18%
+   Target CAGR (2023-2026): 20%
+
+2. Market Share
+   Cloud Services: 1.8% of TAM
+   Enterprise Software: 2.5% of TAM
+   Professional Services: 1.2% of TAM
+
+3. Geographic Distribution
+   North America: 70% of revenue
+   Europe: 20% of revenue
+   Asia-Pacific: 8% of revenue
+   Latin America: 2% of revenue
+
+Investment Metrics:
+
+1. R&D as % of Revenue
+   TechCorp: 13%
+   Industry Range: 10-20%
+   Focus Areas: AI/ML, cloud infrastructure, security
+
+2. Sales & Marketing as % of Revenue
+   TechCorp: 27%
+   Industry Range: 30-40%
+   Efficiency Improving: Down from 32% in 2021
+
+3. Capital Expenditure (CapEx)
+   Annual CapEx: $40 million
+   % of Revenue: 2.4%
+   Primary Use: Data center infrastructure, IT systems
+
+Cohort Analysis:
+
+Customer Cohort Retention:
+- Year 1: 90%
+- Year 2: 85%
+- Year 3: 82%
+- Year 4+: 78%
+
+Revenue Expansion by Cohort:
+- Year 1: 100% (baseline)
+- Year 2: 115%
+- Year 3: 135%
+- Year 4: 150%
+
+Benchmark Comparisons:
+
+vs. Public SaaS Companies:
+- Revenue Growth: At median (15-20%)
+- Gross Margin: Slightly below median (68% vs 75%)
+- Operating Margin: Above median (18% vs 12%)
+- NRR: At median (115% vs 115%)
+- Rule of 40: Approaching best-in-class (35 vs 40+)
+
+Strategic Targets for 2024-2026:
+
+Financial Goals:
+- Revenue: $2.5 billion by 2026
+- Operating Margin: 25%
+- Free Cash Flow Margin: 20%
+- Rule of 40 Score: >45
+
+Operational Goals:
+- NRR: >120%
+- GRR: >97%
+- LTV/CAC: >6.0x
+- NPS: >75
+
+Market Goals:
+- International Revenue: 40% of total
+- Enterprise Customers: 4,000
+- Fortune 500 Penetration: 150 companies
+
+Notes:
+All metrics are subject to quarterly review and may be adjusted based on market conditions and strategic priorities. Definitions align with GAAP and standard SaaS industry practices.
+
+For questions about financial metrics, contact: investor.relations@techcorp.com
