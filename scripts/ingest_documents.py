@@ -116,10 +116,7 @@ def ingest_documents(data_dir: str):
         # Load settings
         settings = get_settings()
 
-        # Initialize components
-        logger.info("Initializing embedding generator...")
-        embedding_gen = EmbeddingGenerator(settings.embedding_model)
-
+        # Initialize Pinecone client (index connection will be established later)
         logger.info("Initializing Pinecone service...")
         pinecone_service = PineconeService(
             api_key=settings.pinecone_api_key,
@@ -127,11 +124,34 @@ def ingest_documents(data_dir: str):
             index_name=settings.pinecone_index_name
         )
 
-        # Create index if it doesn't exist
-        pinecone_service.create_index(
-            dimension=embedding_gen.get_dimension(),
-            metric="cosine"
-        )
+        # Select embedding model; if an index already exists with a known dimension, prefer a compatible model
+        model_name = settings.embedding_model
+        try:
+            if pinecone_service.index_exists():
+                dim = pinecone_service.get_index_dimension()
+                dim_to_model = {
+                    384: "sentence-transformers/all-MiniLM-L6-v2",
+                    768: "sentence-transformers/all-mpnet-base-v2",
+                    1024: "BAAI/bge-large-en-v1.5",
+                    1536: "text-embedding-3-small",
+                    3072: "text-embedding-3-large",
+                }
+                if dim in dim_to_model:
+                    if dim_to_model[dim] != model_name:
+                        logger.info(
+                            f"Index exists with dimension {dim}. Overriding embedding model to '{dim_to_model[dim]}' to match."
+                        )
+                    model_name = dim_to_model[dim]
+                else:
+                    logger.warning(
+                        f"Existing index dimension {dim} is not recognized. Using configured model '{model_name}'."
+                    )
+        except Exception:
+            logger.warning("Could not determine Pinecone index dimension; proceeding with configured embedding model.")
+
+        # Initialize components
+        logger.info("Initializing embedding generator...")
+        embedding_gen = EmbeddingGenerator(model_name)
 
         # Load and split documents
         documents = load_documents(data_dir)
@@ -146,10 +166,39 @@ def ingest_documents(data_dir: str):
             settings.chunk_overlap
         )
 
-        # Generate embeddings
+        # Generate embeddings first (allows provider fallback and determines actual dimension)
         logger.info("Generating embeddings...")
         texts = [chunk.page_content for chunk in chunks]
         embeddings = embedding_gen.generate_embeddings(texts)
+        actual_dim = len(embeddings[0]) if embeddings else embedding_gen.get_dimension()
+
+        # If an index exists with different dimension, create/use a new index with a suffix
+        index_service_to_use = pinecone_service
+        try:
+            if pinecone_service.index_exists():
+                try:
+                    existing_dim = pinecone_service.get_index_dimension()
+                except Exception:
+                    existing_dim = actual_dim
+                if existing_dim != actual_dim:
+                    new_index_name = f"{settings.pinecone_index_name}-{actual_dim}"
+                    logger.warning(
+                        f"Existing index dimension {existing_dim} != embeddings dimension {actual_dim}. "
+                        f"Using a new index: '{new_index_name}'."
+                    )
+                    index_service_to_use = PineconeService(
+                        api_key=settings.pinecone_api_key,
+                        environment=settings.pinecone_environment,
+                        index_name=new_index_name,
+                    )
+        except Exception:
+            logger.warning("Could not check existing index dimension; proceeding to create/connect index.")
+
+        # Create index if needed (connects if exists)
+        index_service_to_use.create_index(
+            dimension=actual_dim,
+            metric="cosine",
+        )
 
         # Prepare metadata
         metadata_list = []
@@ -167,14 +216,14 @@ def ingest_documents(data_dir: str):
 
         # Upsert to Pinecone
         logger.info("Uploading to Pinecone...")
-        pinecone_service.upsert_vectors(
+        index_service_to_use.upsert_vectors(
             vectors=embeddings,
             ids=ids,
             metadata=metadata_list
         )
 
         # Get index stats
-        stats = pinecone_service.get_index_stats()
+        stats = index_service_to_use.get_index_stats()
         logger.info(f"Index stats: {stats}")
 
         logger.info("Document ingestion completed successfully!")

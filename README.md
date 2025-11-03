@@ -398,6 +398,55 @@ logging.basicConfig(level=logging.DEBUG)
 - **Index Size**: ~1KB per document chunk
 - **Concurrent Requests**: Supports multiple concurrent queries
 
+## Windows quick setup (PowerShell)
+
+## Run frontend separately (optional)
+
+You can serve the minimal web UI independently from the backend and point it at your API.
+
+1) Start the backend (terminal A):
+
+  - C:\rag_venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+2) Start the frontend (terminal B):
+
+  - C:\rag_venv\Scripts\python.exe -m http.server 5500 --directory app/static
+
+3) Open the UI and pass the API base as a query param:
+
+  - http://127.0.0.1:5500/index.html?api=http://127.0.0.1:8000
+
+Notes:
+- If port 8000 is in use, change the backend port (e.g., 8010) and update the api parameter accordingly.
+- CORS is enabled for development (allow_origins=["*"]). Adjust for production.
+
+If you're on Windows and prefer a small helper script, a `scripts/setup.ps1` helper is included to automate common steps (create venv, install deps, copy `.env.example`). After running that, you can optionally ingest documents and start the server.
+
+Basic commands (PowerShell):
+
+```powershell
+# Copy example env and edit .env with your API keys
+Copy-Item .env.example .env
+notepad .env
+
+# Run the setup helper (installs deps and creates venv)
+.\scripts\setup.ps1
+
+# Run setup + ingest documents + run server in foreground
+.\scripts\setup.ps1 -Ingest -RunServer
+
+# If you prefer to start the server in the background (uses venv python if present)
+.\scripts\start_server.ps1
+
+# If using Docker
+docker-compose up --build -d
+```
+
+Notes:
+- Edit `.env` before running ingestion to ensure OpenAI and Pinecone keys are present.
+- If `sentence-transformers` or `torch` fails to install via pip, install a compatible `torch` wheel first (CPU wheel works for local dev).
+- The setup script is intended for development convenience; in production use appropriate secrets management.
+
 ## Limitations
 
 - Requires API keys (OpenAI, Pinecone)

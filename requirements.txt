@@ -2,7 +2,7 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-dotenv==1.0.0
-pydantic==2.5.0
+pydantic==2.8.2
 pydantic-settings==2.1.0
 
 # LangChain and RAG
@@ -13,8 +13,8 @@ langchain-community==0.0.10
 # Vector Database
 pinecone-client==3.0.0
 
-# Embeddings
-sentence-transformers==2.2.2
+# Embeddings via Hugging Face Inference API (no local model install)
+# (no extra package required; using httpx)
 
 # OpenAI
 openai==1.6.1

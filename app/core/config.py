@@ -18,10 +18,19 @@ class Settings(BaseSettings):
     pinecone_index_name: str = "financial-rag-chatbot"
 
     # Model Configuration
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    # Default embedding model is set to 1024-dim to align with common Pinecone index configs
+    # Change via EMBEDDING_MODEL in .env if needed
+    embedding_model: str = "BAAI/bge-large-en-v1.5"
+    # Preferred provider for embeddings: 'huggingface' or 'openai'
+    embedding_provider: str = "huggingface"
+    # If True, automatically fall back to OpenAI embeddings when HF API fails (e.g., 401)
+    allow_fallback_to_openai: bool = True
     llm_model: str = "gpt-3.5-turbo"
     temperature: float = 0.7
     max_tokens: int = 500
+
+    # Hugging Face Inference API (for embeddings via API)
+    huggingface_api_token: str | None = None
 
     # Retrieval Configuration
     top_k: int = 5

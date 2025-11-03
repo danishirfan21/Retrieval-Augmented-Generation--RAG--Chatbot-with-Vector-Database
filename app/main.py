@@ -3,6 +3,8 @@ FastAPI application for RAG Financial Chatbot
 Main entry point for the API service
 """
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import sys
@@ -41,6 +43,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve a minimal static frontend at /ui (and static assets under /static)
+try:
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
+except Exception:
+    # If directory doesn't exist yet, ignore mounting error during module import; it will be available at runtime
+    pass
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -72,6 +81,12 @@ async def root():
         "version": settings.app_version,
         "docs": "/docs"
     }
+
+
+@app.get("/ui")
+async def ui():
+    """Serve the minimal chat UI"""
+    return FileResponse("app/static/index.html")
 
 
 if __name__ == "__main__":

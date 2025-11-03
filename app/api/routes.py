@@ -72,18 +72,81 @@ def initialize_rag_chain():
         settings = get_settings()
         logger.info("Initializing RAG components...")
 
-        # Initialize embedding generator
-        embedding_gen = EmbeddingGenerator(settings.embedding_model)
+        # Pick the best available index (most vectors) among common dimension suffixes, then align embeddings
+        base_index_name = settings.pinecone_index_name
+        candidates = [
+            (base_index_name, None),
+            (f"{base_index_name}-3072", 3072),
+            (f"{base_index_name}-1536", 1536),
+            (f"{base_index_name}-1024", 1024),
+            (f"{base_index_name}-768", 768),
+            (f"{base_index_name}-384", 384),
+        ]
+        best_name = None
+        best_dim = None
+        best_count = -1
+        # Probe candidates
+        for name, dim_hint in candidates:
+            svc = PineconeService(
+                api_key=settings.pinecone_api_key,
+                environment=settings.pinecone_environment,
+                index_name=name,
+            )
+            try:
+                if not svc.index_exists():
+                    continue
+                stats = svc.get_index_stats()
+                count = int(stats.get("total_vector_count", 0))
+                # If base (no suffix) and no vectors, deprioritize
+                if count > best_count:
+                    best_name = name
+                    # Try to get accurate dimension; fall back to hint
+                    try:
+                        best_dim = svc.get_index_dimension()
+                    except Exception:
+                        best_dim = dim_hint
+                    best_count = count
+            except Exception:
+                continue
 
-        # Initialize Pinecone service
-        pinecone_service = PineconeService(
-            api_key=settings.pinecone_api_key,
-            environment=settings.pinecone_environment,
-            index_name=settings.pinecone_index_name
-        )
-
-        # Connect to existing index
-        pinecone_service.get_index()
+        # Decide target index and embedding configuration
+        if best_name and best_count > 0 and best_dim:
+            index_name_to_use = best_name
+            target_dim = best_dim
+            # Map dimension to model/provider
+            dim_to_model = {
+                3072: ("openai", "text-embedding-3-large"),
+                1536: ("openai", "text-embedding-3-small"),
+                1024: ("huggingface", "BAAI/bge-large-en-v1.5"),
+                768: ("huggingface", "sentence-transformers/all-mpnet-base-v2"),
+                384: ("huggingface", "sentence-transformers/all-MiniLM-L6-v2"),
+            }
+            provider, model_name = dim_to_model.get(target_dim, (settings.embedding_provider, settings.embedding_model))
+            embedding_gen = EmbeddingGenerator(model_name)
+            # Force provider if needed by temporarily overriding via attribute
+            if hasattr(embedding_gen, "_provider"):
+                embedding_gen._provider = provider  # type: ignore[attr-defined]
+            pinecone_service = PineconeService(
+                api_key=settings.pinecone_api_key,
+                environment=settings.pinecone_environment,
+                index_name=index_name_to_use,
+            )
+            # Ensure index connectivity (no-op if exists)
+            try:
+                pinecone_service.create_index(dimension=target_dim, metric="cosine")
+            except Exception:
+                pinecone_service.get_index()
+            logger.info(f"Using index '{index_name_to_use}' (dim={target_dim}, vectors={best_count})")
+        else:
+            # No populated index found; fall back to configured model/provider and base index
+            embedding_gen = EmbeddingGenerator(settings.embedding_model)
+            desired_dim = embedding_gen.get_dimension()
+            pinecone_service = PineconeService(
+                api_key=settings.pinecone_api_key,
+                environment=settings.pinecone_environment,
+                index_name=base_index_name,
+            )
+            pinecone_service.create_index(dimension=desired_dim, metric="cosine")
 
         # Initialize retriever
         retriever = PineconeRetriever(
@@ -201,15 +264,35 @@ async def chat(request: ChatRequest):
 async def get_stats():
     """Get statistics about the vector index"""
     try:
-        settings = get_settings()
-
-        pinecone_service = PineconeService(
-            api_key=settings.pinecone_api_key,
-            environment=settings.pinecone_environment,
-            index_name=settings.pinecone_index_name
-        )
-
-        stats = pinecone_service.get_index_stats()
+        # Prefer the index used by the running RAG chain if available
+        if rag_chain is not None:
+            stats = rag_chain.retriever.pinecone_service.get_index_stats()
+        else:
+            settings = get_settings()
+            # Align stats to embedding dimension similar to initialization
+            embedding_gen = EmbeddingGenerator(settings.embedding_model)
+            base_index_name = settings.pinecone_index_name
+            service = PineconeService(
+                api_key=settings.pinecone_api_key,
+                environment=settings.pinecone_environment,
+                index_name=base_index_name,
+            )
+            try:
+                desired_dim = embedding_gen.get_dimension()
+                if service.index_exists():
+                    try:
+                        existing_dim = service.get_index_dimension()
+                    except Exception:
+                        existing_dim = desired_dim
+                    if existing_dim != desired_dim:
+                        service = PineconeService(
+                            api_key=settings.pinecone_api_key,
+                            environment=settings.pinecone_environment,
+                            index_name=f"{base_index_name}-{desired_dim}",
+                        )
+            except Exception:
+                pass
+            stats = service.get_index_stats()
 
         return IndexStatsResponse(
             total_vector_count=stats.get("total_vector_count", 0),

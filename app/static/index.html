@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RAG Financial Chatbot</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>RAG Financial Chatbot</h1>
+      <p class="sub">Ask questions about the sample financial docs</p>
+    </header>
+
+    <main>
+      <section class="chat">
+        <div id="messages" class="messages"></div>
+        <form id="form" class="form">
+          <input id="question" type="text" placeholder="Type your question..." autocomplete="off" />
+          <button id="send" type="submit">Ask</button>
+        </form>
+      </section>
+
+      <aside class="side">
+        <h3>Sources</h3>
+        <ul id="sources"></ul>
+      </aside>
+    </main>
+
+    <footer>
+      <a href="/docs" target="_blank">API Docs</a>
+      <span>·</span>
+      <a href="/api/v1/health" target="_blank">Health</a>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

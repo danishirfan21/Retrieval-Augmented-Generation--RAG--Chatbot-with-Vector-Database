@@ -67,6 +67,38 @@ class PineconeService:
             logger.error(f"Error creating index: {str(e)}")
             raise
 
+    def index_exists(self) -> bool:
+        """Return True if the index exists in Pinecone."""
+        try:
+            existing_indexes = [index.name for index in self.pc.list_indexes()]
+            return self.index_name in existing_indexes
+        except Exception as e:
+            logger.error(f"Error checking index existence: {str(e)}")
+            raise
+
+    def get_index_dimension(self) -> int:
+        """Return the dimension of the existing index, if available."""
+        try:
+            # Describe index to get metadata including dimension
+            desc = self.pc.describe_index(self.index_name)
+            # desc may be a dict-like object depending on SDK version
+            if hasattr(desc, "dimension"):
+                return desc.dimension  # type: ignore[attr-defined]
+            if isinstance(desc, dict) and "dimension" in desc:
+                return int(desc["dimension"])  # type: ignore[index]
+
+            # Fallback: connect and try stats (not guaranteed to include dimension)
+            idx = self.pc.Index(self.index_name)
+            stats = idx.describe_index_stats()
+            dim = stats.get("dimension") if isinstance(stats, dict) else None
+            if dim is not None:
+                return int(dim)
+
+            raise RuntimeError("Unable to determine index dimension from Pinecone API response")
+        except Exception as e:
+            logger.error(f"Error getting index dimension: {str(e)}")
+            raise
+
     def get_index(self):
         """Get the current index instance"""
         if self.index is None:

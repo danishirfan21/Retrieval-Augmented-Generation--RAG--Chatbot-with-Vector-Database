@@ -1,0 +1,60 @@
+* { box-sizing: border-box; }
+:root {
+  --bg: #0b1020;
+  --panel: #141a33;
+  --text: #e7ecff;
+  --muted: #9aa5cf;
+  --accent: #6ea8fe;
+  --accent2: #9a6efe;
+  --border: #273056;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: linear-gradient(135deg, var(--bg), #121735 50%, #0d1330);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+header { margin-bottom: 12px; }
+h1 { margin: 0; font-size: 26px; }
+.sub { margin: 6px 0 0; color: var(--muted); }
+main {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 16px;
+}
+.chat {
+  background: radial-gradient(1200px 400px at -5% -10%, rgba(110,168,254,0.12), transparent 60%),
+              radial-gradient(1000px 500px at 110% -20%, rgba(154,110,254,0.12), transparent 60%),
+              var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 480px;
+}
+.messages {
+  padding: 16px;
+  height: 420px;
+  overflow: auto;
+}
+.msg { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; line-height: 1.4; }
+.msg.user { background: rgba(110,168,254,0.12); border: 1px solid #365694; }
+.msg.bot { background: rgba(154,110,254,0.12); border: 1px solid #594394; }
+.form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); background: #0f1533; }
+.form input { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: #0b112b; color: var(--text); }
+.form button { padding: 10px 14px; border-radius: 10px; border: 1px solid #365694; background: linear-gradient(180deg, #2b4377, #21355d); color: #e7ecff; cursor: pointer; }
+.side { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+.side h3 { margin: 6px 0 10px; }
+.side ul { margin: 0; padding-left: 18px; color: var(--muted); }
+footer { margin-top: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+footer a { color: var(--accent); text-decoration: none; }
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+}
