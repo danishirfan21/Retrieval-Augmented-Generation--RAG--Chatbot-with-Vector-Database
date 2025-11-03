@@ -14,6 +14,13 @@
     </header>
 
     <main>
+      <section class="upload-row">
+        <div id="dropzone" class="dropzone">
+          <span id="dropzone-label">Drag & drop files here or <label for="file-input" class="file-label">browse</label> to upload</span>
+          <input id="file-input" type="file" multiple style="display:none" />
+        </div>
+        <div id="upload-status" class="upload-status"></div>
+      </section>
       <section class="chat">
         <div id="messages" class="messages"></div>
         <form id="form" class="form">
@@ -21,7 +28,6 @@
           <button id="send" type="submit">Ask</button>
         </form>
       </section>
-
       <aside class="side">
         <h3>Sources</h3>
         <ul id="sources"></ul>

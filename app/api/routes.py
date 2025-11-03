@@ -2,10 +2,13 @@
 API routes for RAG chatbot
 Defines endpoints for querying and health checks
 """
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import logging
+import shutil
+import tempfile
+import os
 
 from app.rag.chain import RAGChain
 from app.rag.retriever import PineconeRetriever
@@ -306,3 +309,26 @@ async def get_stats():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting stats: {str(e)}"
         )
+
+
+@router.post("/upload")
+async def upload_files(files: list[UploadFile] = File(...)):
+    """Upload one or more files for ingestion."""
+    settings = get_settings()
+    temp_dir = tempfile.mkdtemp(prefix="rag_upload_")
+    try:
+        saved = []
+        for f in files:
+            dest = os.path.join(temp_dir, f.filename)
+            with open(dest, "wb") as out:
+                shutil.copyfileobj(f.file, out)
+            saved.append(dest)
+        # Call ingestion script logic directly
+        from scripts.ingest_documents import ingest_documents
+        ingest_documents(temp_dir)
+        return JSONResponse({"success": True, "files": [os.path.basename(x) for x in saved]})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+    finally:
+        # Optionally: clean up temp_dir after ingestion
+        pass

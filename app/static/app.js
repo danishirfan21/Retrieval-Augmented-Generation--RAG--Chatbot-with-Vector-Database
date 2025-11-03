@@ -2,6 +2,9 @@ const form = document.getElementById('form');
 const input = document.getElementById('question');
 const messages = document.getElementById('messages');
 const sourcesEl = document.getElementById('sources');
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+const uploadStatus = document.getElementById('upload-status');
 
 // Allow running frontend on a different port/domain than the backend
 // Usage: /index.html?api=http://127.0.0.1:8000
@@ -63,3 +66,44 @@ try {
     if (a.textContent.includes('Health')) a.href = api('/api/v1/health');
   }
 } catch {}
+
+// --- Upload/drag-and-drop logic ---
+function setUploadStatus(msg, ok = true) {
+  uploadStatus.textContent = msg;
+  uploadStatus.style.color = ok ? '#6ea8fe' : '#e57373';
+}
+
+function uploadFiles(files) {
+  if (!files || !files.length) return;
+  setUploadStatus('Uploading...');
+  const form = new FormData();
+  for (const f of files) form.append('files', f);
+  fetch(api('/api/v1/upload'), {
+    method: 'POST',
+    body: form
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        setUploadStatus('Upload and ingestion complete!', true);
+      } else {
+        setUploadStatus(data.error || 'Upload failed', false);
+      }
+    })
+    .catch(e => setUploadStatus('Upload error: ' + e, false));
+}
+
+dropzone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropzone.classList.add('dragover');
+});
+dropzone.addEventListener('dragleave', e => {
+  dropzone.classList.remove('dragover');
+});
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  uploadFiles(e.dataTransfer.files);
+});
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => uploadFiles(e.target.files));
