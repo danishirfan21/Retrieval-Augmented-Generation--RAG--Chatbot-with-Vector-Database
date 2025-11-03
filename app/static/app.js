@@ -6,9 +6,18 @@ const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('file-input');
 const uploadStatus = document.getElementById('upload-status');
 
-// Allow running frontend on a different port/domain than the backend
+// Determine API base (query param overrides, then global, then same-origin)
 // Usage: /index.html?api=http://127.0.0.1:8000
-const API_BASE = new URLSearchParams(location.search).get('api') || (window.API_BASE || '').trim();
+const queryApi = new URLSearchParams(location.search).get('api');
+let API_BASE = '';
+if (queryApi) {
+  API_BASE = queryApi.replace(/\/$/, '');
+} else if (window.API_BASE && window.API_BASE.trim()) {
+  API_BASE = window.API_BASE.trim().replace(/\/$/, '');
+} else {
+  // Use same origin so links work when backend and frontend are served together
+  API_BASE = window.location.origin;
+}
 const api = (path) => `${API_BASE}${path}`;
 
 const appendMsg = (text, who = 'bot') => {
@@ -58,14 +67,29 @@ form.addEventListener('submit', async (e) => {
 // Warm up: add a greeting message
 appendMsg('Hi! Ask me about the financial docs in this project.');
 
-// Update footer links to target the API base if provided
-try {
-  const links = Array.from(document.querySelectorAll('footer a'));
-  for (const a of links) {
-    if (a.textContent.includes('API Docs')) a.href = api('/docs');
-    if (a.textContent.includes('Health')) a.href = api('/api/v1/health');
+// After DOM ready, wire footer links to the chosen API base and update UI state
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const links = Array.from(document.querySelectorAll('footer a'));
+    for (const a of links) {
+      const txt = (a.textContent || '').toLowerCase();
+      if (txt.includes('api docs') || txt.includes('docs')) a.href = api('/docs');
+      if (txt.includes('health')) a.href = api('/api/v1/health');
+    }
+  } catch (e) {
+    // ignore
   }
-} catch {}
+
+  // Update subheading to reflect that we may analyze uploaded documents
+  const sub = document.querySelector('.sub');
+  if (sub) sub.textContent = 'Ask questions about your uploaded documents (or sample docs)';
+});
+
+// When uploads finish successfully, switch the UI to reflect uploaded docs
+function markUploaded(files) {
+  const sub = document.querySelector('.sub');
+  if (sub) sub.textContent = files && files.length ? `Ask questions about uploaded documents (${files.join(', ')})` : 'Ask questions about your uploaded documents';
+}
 
 // --- Upload/drag-and-drop logic ---
 function setUploadStatus(msg, ok = true) {
@@ -86,6 +110,9 @@ function uploadFiles(files) {
     .then(data => {
       if (data.success) {
         setUploadStatus('Upload and ingestion complete!', true);
+        // Show uploaded file names in UI
+        const names = (data.files || []).slice(0,5);
+        markUploaded(names);
       } else {
         setUploadStatus(data.error || 'Upload failed', false);
       }
