@@ -1,38 +1,38 @@
 # Core Dependencies
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-dotenv==1.0.0
-pydantic==2.8.2
-pydantic-settings==2.1.0
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+pydantic-settings
 
 # LangChain and RAG
-langchain==0.1.0
-langchain-openai==0.0.2
-langchain-community==0.0.10
+langchain
+langchain-openai
+langchain-community
+langchain-text-splitters
 
-# Vector Database
-pinecone-client==3.0.0
-
-# Embeddings via Hugging Face Inference API (no local model install)
-# (no extra package required; using httpx)
+# Vector Database (CHANGED: pinecone-client -> pinecone)
+pinecone
 
 # OpenAI
-openai==1.6.1
+openai
 
 # Document Processing
-pypdf==3.17.4
-python-multipart==0.0.6
+pypdf
+python-multipart
 
 # Data Processing
-pandas==2.1.4
-numpy==1.26.2
+pandas
+numpy
+
+# HTTP Client
+httpx
 
 # Jupyter (for notebooks)
-jupyter==1.0.0
-ipykernel==6.27.1
-matplotlib==3.8.2
+jupyter
+ipykernel
+matplotlib
 
 # Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.2
+pytest
+pytest-asyncio

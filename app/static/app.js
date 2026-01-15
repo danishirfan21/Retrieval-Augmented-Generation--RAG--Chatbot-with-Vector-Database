@@ -1,13 +1,4 @@
-const form = document.getElementById('form');
-const input = document.getElementById('question');
-const messages = document.getElementById('messages');
-const sourcesEl = document.getElementById('sources');
-const dropzone = document.getElementById('dropzone');
-const fileInput = document.getElementById('file-input');
-const uploadStatus = document.getElementById('upload-status');
-
-// Determine API base (query param overrides, then global, then same-origin)
-// Usage: /index.html?api=http://127.0.0.1:8000
+// Determine API base
 const queryApi = new URLSearchParams(location.search).get('api');
 let API_BASE = '';
 if (queryApi) {
@@ -15,122 +6,411 @@ if (queryApi) {
 } else if (window.API_BASE && window.API_BASE.trim()) {
   API_BASE = window.API_BASE.trim().replace(/\/$/, '');
 } else {
-  // Use same origin so links work when backend and frontend are served together
   API_BASE = window.location.origin;
 }
 const api = (path) => `${API_BASE}${path}`;
 
-const appendMsg = (text, who = 'bot') => {
-  const div = document.createElement('div');
-  div.className = `msg ${who}`;
-  div.textContent = text;
-  messages.appendChild(div);
-  messages.scrollTop = messages.scrollHeight;
-};
+// DOM Elements
+const queryInput = document.getElementById('query-input');
+const responseSection = document.getElementById('response-section');
+const emptyState = document.getElementById('empty-state');
+const responseContainer = document.getElementById('response-container');
+const sourcesList = document.getElementById('sources-list');
+const conversationList = document.getElementById('conversation-list');
+const newQueryBtn = document.getElementById('new-query-btn');
 
-const setSources = (sources) => {
-  sourcesEl.innerHTML = '';
-  const unique = Array.from(new Set(sources || []));
-  for (const src of unique) {
-    const li = document.createElement('li');
-    li.textContent = src;
-    sourcesEl.appendChild(li);
+// Modal elements
+const uploadModal = document.getElementById('upload-modal');
+const statsModal = document.getElementById('stats-modal');
+const uploadNav = document.getElementById('upload-nav');
+const statsNav = document.getElementById('stats-nav');
+const modalClose = document.getElementById('modal-close');
+const statsModalClose = document.getElementById('stats-modal-close');
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+const uploadStatus = document.getElementById('upload-status');
+
+// State
+let conversations = [];
+let currentConversationId = null;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  loadConversations();
+  loadStats();
+});
+
+// Handle query input
+queryInput.addEventListener('keypress', async (e) => {
+  if (e.key === 'Enter' && queryInput.value.trim()) {
+    const question = queryInput.value.trim();
+    queryInput.value = '';
+    await handleQuery(question);
   }
-};
+});
 
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const q = input.value.trim();
-  if (!q) return;
-  appendMsg(q, 'user');
-  input.value = '';
+// Handle new query button
+newQueryBtn.addEventListener('click', () => {
+  currentConversationId = null;
+  responseContainer.innerHTML = '';
+  responseContainer.style.display = 'none';
+  emptyState.style.display = 'block';
+  sourcesList.innerHTML =
+    '<div class="empty-state" style="padding: 20px; text-align: center;"><div class="empty-state-text" style="font-size: 13px;">Sources will appear here after you ask a question</div></div>';
+  updateConversationList();
+});
+
+// Handle query
+async function handleQuery(question) {
+  // Hide empty state
+  emptyState.style.display = 'none';
+  responseContainer.style.display = 'block';
+
+  // Create conversation if new
+  if (!currentConversationId) {
+    currentConversationId = Date.now().toString();
+    conversations.unshift({
+      id: currentConversationId,
+      title: question.substring(0, 50),
+      queries: [],
+    });
+    updateConversationList();
+  }
+
+  // Add loading state
+  const loadingCard = createLoadingCard(question);
+  responseContainer.appendChild(loadingCard);
 
   try {
-    const res = await fetch(api('/api/v1/query'), {
+    const response = await fetch(api('/api/v1/query'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: q, top_k: 5 })
+      body: JSON.stringify({ question, top_k: 5 }),
     });
-    if (!res.ok) {
-      const txt = await res.text();
-      appendMsg(`Error ${res.status}: ${txt}`);
-      return;
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${await response.text()}`);
     }
-    const data = await res.json();
-    appendMsg(data.answer || '(no answer)');
-    setSources(data.sources);
+
+    const data = await response.json();
+
+    // Remove loading card
+    loadingCard.remove();
+
+    // Add response card
+    const responseCard = createResponseCard(data);
+    responseContainer.appendChild(responseCard);
+
+    // Update sources
+    updateSources(data.retrieved_docs);
+
+    // Save to conversation
+    const conversation = conversations.find(
+      (c) => c.id === currentConversationId
+    );
+    if (conversation) {
+      conversation.queries.push(data);
+      saveConversations();
+    }
   } catch (err) {
-    appendMsg(`Request failed: ${err}`);
+    loadingCard.remove();
+    const errorCard = createErrorCard(question, err.message);
+    responseContainer.appendChild(errorCard);
   }
-});
 
-// Warm up: add a greeting message
-appendMsg('Hi! Ask me about the financial docs in this project.');
+  // Scroll to bottom
+  responseSection.scrollTop = responseSection.scrollHeight;
+}
 
-// After DOM ready, wire footer links to the chosen API base and update UI state
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    const links = Array.from(document.querySelectorAll('footer a'));
-    for (const a of links) {
-      const txt = (a.textContent || '').toLowerCase();
-      if (txt.includes('api docs') || txt.includes('docs')) a.href = api('/docs');
-      if (txt.includes('health')) a.href = api('/api/v1/health');
+// Create response card
+function createResponseCard(data) {
+  const card = document.createElement('div');
+  card.className = 'response-card';
+
+  const questionLabel = document.createElement('div');
+  questionLabel.className = 'question-label';
+  questionLabel.textContent = 'Query';
+
+  const questionText = document.createElement('div');
+  questionText.className = 'question-text';
+  questionText.textContent = data.question;
+
+  const answerLabel = document.createElement('div');
+  answerLabel.className = 'answer-label';
+  answerLabel.textContent = 'Answer';
+
+  const answerText = document.createElement('div');
+  answerText.className = 'answer-text';
+
+  // Process answer with citations
+  const answerWithCitations = data.answer.replace(
+    /\[(\d+)\]/g,
+    (match, num) => {
+      return `<span class="citation">[${num}]</span>`;
     }
-  } catch (e) {
-    // ignore
+  );
+
+  answerText.innerHTML = `<p>${answerWithCitations}</p>`;
+
+  card.appendChild(questionLabel);
+  card.appendChild(questionText);
+  card.appendChild(answerLabel);
+  card.appendChild(answerText);
+
+  return card;
+}
+
+// Create loading card
+function createLoadingCard(question) {
+  const card = document.createElement('div');
+  card.className = 'response-card';
+  card.style.opacity = '0.6';
+
+  const questionLabel = document.createElement('div');
+  questionLabel.className = 'question-label';
+  questionLabel.textContent = 'Query';
+
+  const questionText = document.createElement('div');
+  questionText.className = 'question-text';
+  questionText.textContent = question;
+
+  const answerLabel = document.createElement('div');
+  answerLabel.className = 'answer-label';
+  answerLabel.textContent = 'Answer';
+
+  const answerText = document.createElement('div');
+  answerText.className = 'answer-text';
+  answerText.textContent = 'Generating answer...';
+
+  card.appendChild(questionLabel);
+  card.appendChild(questionText);
+  card.appendChild(answerLabel);
+  card.appendChild(answerText);
+
+  return card;
+}
+
+// Create error card
+function createErrorCard(question, error) {
+  const card = document.createElement('div');
+  card.className = 'response-card';
+  card.style.borderColor = '#e57373';
+
+  const questionLabel = document.createElement('div');
+  questionLabel.className = 'question-label';
+  questionLabel.textContent = 'Query';
+
+  const questionText = document.createElement('div');
+  questionText.className = 'question-text';
+  questionText.textContent = question;
+
+  const answerLabel = document.createElement('div');
+  answerLabel.className = 'answer-label';
+  answerLabel.textContent = 'Error';
+  answerLabel.style.color = '#e57373';
+
+  const answerText = document.createElement('div');
+  answerText.className = 'answer-text';
+  answerText.textContent = error;
+  answerText.style.color = '#e57373';
+
+  card.appendChild(questionLabel);
+  card.appendChild(questionText);
+  card.appendChild(answerLabel);
+  card.appendChild(answerText);
+
+  return card;
+}
+
+// Update sources
+function updateSources(docs) {
+  sourcesList.innerHTML = '';
+
+  if (!docs || docs.length === 0) {
+    sourcesList.innerHTML =
+      '<div class="empty-state" style="padding: 20px; text-align: center;"><div class="empty-state-text" style="font-size: 13px;">No sources found</div></div>';
+    return;
   }
 
-  // Update subheading to reflect that we may analyze uploaded documents
-  const sub = document.querySelector('.sub');
-  if (sub) sub.textContent = 'Ask questions about your uploaded documents (or sample docs)';
+  docs.forEach((doc, index) => {
+    const card = document.createElement('div');
+    card.className = 'source-card';
+
+    const filename = document.createElement('div');
+    filename.className = 'source-filename';
+    filename.textContent = doc.source || 'unknown';
+
+    const preview = document.createElement('div');
+    preview.className = 'source-preview';
+    preview.textContent = doc.text;
+
+    const metadata = document.createElement('div');
+    metadata.className = 'source-metadata';
+
+    const score = document.createElement('span');
+    score.className = 'source-score';
+    score.textContent = doc.score ? doc.score.toFixed(2) : '0.00';
+
+    const chunkId = document.createElement('span');
+    chunkId.className = 'source-chunk-id';
+    chunkId.textContent = `chunk_${index + 1}`;
+
+    metadata.appendChild(score);
+    metadata.appendChild(chunkId);
+
+    card.appendChild(filename);
+    card.appendChild(preview);
+    card.appendChild(metadata);
+
+    sourcesList.appendChild(card);
+  });
+}
+
+// Update conversation list
+function updateConversationList() {
+  conversationList.innerHTML = '';
+
+  conversations.forEach((conv) => {
+    const item = document.createElement('div');
+    item.className = 'conversation-item';
+    if (conv.id === currentConversationId) {
+      item.classList.add('active');
+    }
+    item.textContent = conv.title;
+    item.addEventListener('click', () => loadConversation(conv.id));
+    conversationList.appendChild(item);
+  });
+}
+
+// Load conversation
+function loadConversation(id) {
+  const conversation = conversations.find((c) => c.id === id);
+  if (!conversation) return;
+
+  currentConversationId = id;
+  responseContainer.innerHTML = '';
+  emptyState.style.display = 'none';
+  responseContainer.style.display = 'block';
+
+  conversation.queries.forEach((query) => {
+    const card = createResponseCard(query);
+    responseContainer.appendChild(card);
+  });
+
+  if (conversation.queries.length > 0) {
+    updateSources(
+      conversation.queries[conversation.queries.length - 1].retrieved_docs
+    );
+  }
+
+  updateConversationList();
+}
+
+// Save conversations to localStorage
+function saveConversations() {
+  localStorage.setItem('rag_conversations', JSON.stringify(conversations));
+}
+
+// Load conversations from localStorage
+function loadConversations() {
+  const saved = localStorage.getItem('rag_conversations');
+  if (saved) {
+    conversations = JSON.parse(saved);
+    updateConversationList();
+  }
+}
+
+// Modal handlers
+uploadNav.addEventListener('click', () => {
+  uploadModal.classList.add('active');
 });
 
-// When uploads finish successfully, switch the UI to reflect uploaded docs
-function markUploaded(files) {
-  const sub = document.querySelector('.sub');
-  if (sub) sub.textContent = files && files.length ? `Ask questions about uploaded documents (${files.join(', ')})` : 'Ask questions about your uploaded documents';
-}
+statsNav.addEventListener('click', async () => {
+  statsModal.classList.add('active');
+  await loadStats();
+});
 
-// --- Upload/drag-and-drop logic ---
-function setUploadStatus(msg, ok = true) {
-  uploadStatus.textContent = msg;
-  uploadStatus.style.color = ok ? '#6ea8fe' : '#e57373';
-}
+modalClose.addEventListener('click', () => {
+  uploadModal.classList.remove('active');
+});
 
-function uploadFiles(files) {
-  if (!files || !files.length) return;
-  setUploadStatus('Uploading...');
-  const form = new FormData();
-  for (const f of files) form.append('files', f);
-  fetch(api('/api/v1/upload'), {
-    method: 'POST',
-    body: form
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        setUploadStatus('Upload and ingestion complete!', true);
-        // Show uploaded file names in UI
-        const names = (data.files || []).slice(0,5);
-        markUploaded(names);
-      } else {
-        setUploadStatus(data.error || 'Upload failed', false);
-      }
-    })
-    .catch(e => setUploadStatus('Upload error: ' + e, false));
-}
+statsModalClose.addEventListener('click', () => {
+  statsModal.classList.remove('active');
+});
 
-dropzone.addEventListener('dragover', e => {
+window.addEventListener('click', (e) => {
+  if (e.target === uploadModal) {
+    uploadModal.classList.remove('active');
+  }
+  if (e.target === statsModal) {
+    statsModal.classList.remove('active');
+  }
+});
+
+// Upload handlers
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', (e) => {
   e.preventDefault();
   dropzone.classList.add('dragover');
 });
-dropzone.addEventListener('dragleave', e => {
+dropzone.addEventListener('dragleave', () => {
   dropzone.classList.remove('dragover');
 });
-dropzone.addEventListener('drop', e => {
+dropzone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropzone.classList.remove('dragover');
   uploadFiles(e.dataTransfer.files);
 });
-dropzone.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', e => uploadFiles(e.target.files));
+fileInput.addEventListener('change', (e) => uploadFiles(e.target.files));
+
+async function uploadFiles(files) {
+  if (!files || files.length === 0) return;
+
+  uploadStatus.textContent = 'Uploading and indexing documents...';
+  uploadStatus.style.color = 'var(--color-accent)';
+
+  const formData = new FormData();
+  for (const file of files) {
+    formData.append('files', file);
+  }
+
+  try {
+    const response = await fetch(api('/api/v1/upload'), {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      uploadStatus.textContent = `Successfully uploaded ${data.files.length} file(s)!`;
+      uploadStatus.style.color = '#6ea8fe';
+      setTimeout(() => {
+        uploadModal.classList.remove('active');
+        uploadStatus.textContent = '';
+      }, 2000);
+    } else {
+      uploadStatus.textContent = `Error: ${data.error}`;
+      uploadStatus.style.color = '#e57373';
+    }
+  } catch (err) {
+    uploadStatus.textContent = `Upload failed: ${err.message}`;
+    uploadStatus.style.color = '#e57373';
+  }
+}
+
+// Load stats
+async function loadStats() {
+  try {
+    const response = await fetch(api('/api/v1/stats'));
+    const data = await response.json();
+
+    document.getElementById('stat-docs').textContent =
+      data.total_vector_count.toLocaleString();
+    document.getElementById('stat-dim').textContent = data.dimension;
+    document.getElementById('stat-fullness').textContent =
+      (data.index_fullness * 100).toFixed(2) + '%';
+  } catch (err) {
+    console.error('Failed to load stats:', err);
+  }
+}

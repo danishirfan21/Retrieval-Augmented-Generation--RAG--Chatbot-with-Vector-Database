@@ -15,7 +15,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from app.core.config import get_settings
 from app.core.embeddings import EmbeddingGenerator
 from app.services.pinecone_service import PineconeService
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import DirectoryLoader, TextLoader, PyPDFLoader
 
 # Configure logging
